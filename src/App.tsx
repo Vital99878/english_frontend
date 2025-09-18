@@ -1,6 +1,6 @@
 import './App.css'
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {ClozeArticle} from "feature/ClozeArticle";
+import {ClozeArticle} from "feature/cloze-article/ClozeArticle";
 
 const qc = new QueryClient()
 

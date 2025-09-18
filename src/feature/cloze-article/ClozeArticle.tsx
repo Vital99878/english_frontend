@@ -1,129 +1,11 @@
-
 import React from 'react'
-import axios, { type AxiosInstance } from 'axios'
-import { useMutation, type UseMutationResult } from '@tanstack/react-query'
-import { Subject } from 'rxjs'
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators'
-
-type TextToken = { kind: 'text'; text: string }
-type FieldToken = { kind: 'field'; id: string; placeholder?: string }
-type Token = TextToken | FieldToken
-
-export type FieldResult = { status: 'ok' | 'wrong' | 'partial'; message?: string }
-export type CheckResult = {
-    overall: 'correct' | 'partial' | 'wrong'
-    fieldResults: Record<string, FieldResult>
-}
-
-export type AnswersMap = Record<string, string[]> // local check (опционально)
-
-export type ClozeArticleProps = {
-    slug: string
-    /** Шаблон с пропусками, например: "He is {{a1}} engineer. I go to {{a2|∅}} work." */
-    template: string
-    /** Подписи для доступности (опционально) */
-    ariaLabels?: Record<string, string>
-    /** Начальные значения полей (опционально) */
-    initialValues?: Record<string, string>
-    /** Если указан — проверяем локально (без бэка) */
-    localAnswers?: AnswersMap
-    /** Включить автопроверку (debounce 400мс через RxJS) */
-    autoCheck?: boolean
-    /** Кастомный axios instance (опционально) */
-    axiosInstance?: AxiosInstance
-    /** Сборка URL для бэка (по умолчанию /api/exercises/:slug/check) */
-    buildCheckUrl?: (slug: string) => string
-    /** Колбэк, если нужно перехватить результат */
-    onChecked?: (result: CheckResult) => void
-}
-
-const RE = /\{\{([^}]+)}}/g
-const norm = (s: string) => s.trim().toLowerCase()
-
-function parseTemplate(template: string): Token[] {
-    const tokens: Token[] = []
-    let lastIndex = 0
-    let m: RegExpExecArray | null
-    while ((m = RE.exec(template))) {
-        const start = m.index
-        const end = RE.lastIndex
-        if (start > lastIndex) tokens.push({ kind: 'text', text: template.slice(lastIndex, start) })
-        const raw = m[1].trim()
-        const [idPart, ph] = raw.split('|')
-        tokens.push({ kind: 'field', id: (idPart || '').trim(), placeholder: ph?.trim() })
-        lastIndex = end
-    }
-    if (lastIndex < template.length) tokens.push({ kind: 'text', text: template.slice(lastIndex) })
-    return tokens
-}
-
-function useAutoWidth(value: string) {
-    const mirrorRef = React.useRef<HTMLSpanElement | null>(null)
-    const [w, setW] = React.useState(4)
-    const measure = React.useCallback(() => {
-        const el = mirrorRef.current
-        if (!el) return
-        el.textContent = value || ''
-        setW(Math.ceil(el.offsetWidth) + 4)
-    }, [value])
-    React.useLayoutEffect(measure, [measure])
-    React.useEffect(() => {
-        const r = () => measure()
-        window.addEventListener('resize', r)
-        return () => window.removeEventListener('resize', r)
-    }, [measure])
-    return { mirrorRef, widthPx: w }
-}
-
-function AutoInput({
-                       id,
-                       value,
-                       onChange,
-                       placeholder,
-                       toneClass,
-                       ariaLabel,
-                   }: {
-    id: string
-    value: string
-    onChange: (v: string) => void
-    placeholder?: string
-    toneClass?: string
-    ariaLabel?: string
-}) {
-    const { mirrorRef, widthPx } = useAutoWidth(value)
-    return (
-        <span style={{ position: 'relative', display: 'inline-block', verticalAlign: 'baseline' }}>
-      <span
-          ref={mirrorRef}
-          style={{ position: 'absolute', left: -9999, top: -9999, whiteSpace: 'pre', font: 'inherit', letterSpacing: 'inherit' }}
-          aria-hidden
-      />
-      <input
-          id={id}
-          name={id}
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder ?? '…'}
-          aria-label={ariaLabel}
-          style={{
-              width: `${widthPx}px`,
-              margin: '0 4px',
-              background: 'transparent',
-              border: 0,
-              borderBottom: '1px solid #9ca3af',
-              outline: 'none',
-          }}
-          className={toneClass}
-          onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.ctrlKey || (e).metaKey)) {
-                  (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit()
-              }
-          }}
-      />
-    </span>
-    )
-}
+import axios from 'axios'
+import {Subject} from 'rxjs'
+import {useMutation, type UseMutationResult} from '@tanstack/react-query'
+import {debounceTime, distinctUntilChanged} from 'rxjs/operators'
+import {AutoInput} from "./ui/AutoInput";
+import {ClozeArticleProps, CheckResult, FieldResult, FieldToken} from "src/feature/cloze-article/model/types";
+import {norm, parseTemplate, tone} from "./lib";
 
 export function ClozeArticle({
                                  slug,
@@ -205,12 +87,7 @@ export function ClozeArticle({
     }
 
     const fieldStatus = (id: string) => lastResult?.fieldResults?.[id]?.status
-    const tone = (status?: string) =>
-        status === 'ok'
-            ? 'ok'
-            : status === 'wrong'
-                ? 'err'
-                : '' // серый по умолчанию через inline-стили
+
 
     return (
         <form onSubmit={submit} style={{ maxWidth: 880, margin: '0 auto', padding: 16 }}>
