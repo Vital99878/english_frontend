@@ -11,4 +11,14 @@ export default defineConfig({
       'feature': fileURLToPath(new URL('./src/feature', import.meta.url)),
     },
   },
+  server: {
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        // rewrite: (p) => p, // путь /api оставляем как есть
+      },
+    },
+  },
 })

@@ -12,13 +12,16 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.87.4",
+    "@tanstack/react-router": "^1.131.48",
     "axios": "^1.12.2",
     "node": "^24.8.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.1",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.33.0",
     "@types/node": "^24.4.0",
@@ -32,7 +35,6 @@
     "husky": "^9.1.7",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2",
-    "@commitlint/cli": "^19.8.1"
+    "vite": "^7.1.2"
   }
 }
