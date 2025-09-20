@@ -13,7 +13,8 @@
     "paths": {
       "@/*": ["src/*"],
       "src/*": ["src/*"],
-      "feature/*": ["src/feature/*"]
+      "feature/*": ["src/feature/*"],
+      "shared/*": ["src/shared/*"]
     },
 
     "types": ["vite/client"]

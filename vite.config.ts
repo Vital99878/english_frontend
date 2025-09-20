@@ -9,6 +9,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       'src': fileURLToPath(new URL('./src', import.meta.url)),
       'feature': fileURLToPath(new URL('./src/feature', import.meta.url)),
+      'shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
     },
   },
   server: {

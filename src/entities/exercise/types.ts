@@ -1,13 +1,5 @@
-export type ClozeBlank = {
-    id: string;
-    accept: string[];
-    caseSensitive: boolean;
-};
 
-export type ClozePayload = {
-    text: string;                 // "Yesterday I __b1__ ... __b2__ ..."
-    blanks: ClozeBlank[];         // [{id:"b1", ...}, ...]
-};
+
 
 export type Exercise = {
     id: string;
@@ -15,6 +7,18 @@ export type Exercise = {
     prompt: string;
     payload: ClozePayload;
 };
+
+export type ClozePayload = {
+    text: string;                 // "Yesterday I __b1__ ... __b2__ ..."
+    blanks: ClozeBlank[];         // [{id:"b1", ...}, ...]
+};
+
+export type ClozeBlank = {
+    id: string;
+    accept: string[];
+    caseSensitive: boolean;
+};
+
 
 export type CheckDetail = {
     blankId: string;
