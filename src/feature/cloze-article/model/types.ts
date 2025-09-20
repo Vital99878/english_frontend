@@ -8,8 +8,6 @@ export type ClozeArticleProps = {
     ariaLabels?: Record<string, string>
     /** Начальные значения полей (опционально) */
     initialValues?: Record<string, string>
-    /** Если указан — проверяем локально (без бэка) */
-    localAnswers?: AnswersMap
     /** Включить автопроверку (debounce 400мс через RxJS) */
     autoCheck?: boolean
     /** Кастомный axios instance (опционально) */
@@ -30,4 +28,3 @@ export type CheckResult = {
     fieldResults: Record<string, FieldResult>
 }
 
-export type AnswersMap = Record<string, string[]> // local check (опционально)

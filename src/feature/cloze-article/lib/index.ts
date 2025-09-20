@@ -25,4 +25,4 @@ export const tone = (status?: string) =>
         ? 'ok'
         : status === 'wrong'
             ? 'err'
-            : '' // серый по умолчанию через inline-стили
+            : ''

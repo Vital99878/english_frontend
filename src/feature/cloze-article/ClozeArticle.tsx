@@ -1,73 +1,77 @@
 import React from 'react'
-import axios from 'axios'
-import {Subject} from 'rxjs'
-import {useMutation, type UseMutationResult} from '@tanstack/react-query'
-import {debounceTime, distinctUntilChanged} from 'rxjs/operators'
-import {AutoInput} from "./ui/AutoInput";
-import {ClozeArticleProps, CheckResult, FieldResult, FieldToken} from "src/feature/cloze-article/model/types";
-import {norm, parseTemplate, tone} from "./lib";
+import axios, { AxiosInstance } from 'axios'
+import { Subject } from 'rxjs'
+import { useMutation } from '@tanstack/react-query'
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators'
+import { AutoInput } from './ui/AutoInput'
+import { FieldToken, CheckResult } from 'src/feature/cloze-article/model/types'
+import { parseTemplate, tone } from './lib'
+import { useExerciseMeta } from "./model/useExerciseMeta"
+
+export type ClozeArticleProps = {
+    slug: string
+    autoCheck?: boolean
+    initialValues?: Record<string, string>
+    axiosInstance?: AxiosInstance
+    buildMetaUrl?: (slug: string) => string
+    buildCheckUrl?: (slug: string) => string
+    onChecked?: (result: CheckResult) => void
+}
 
 export function ClozeArticle({
                                  slug,
-                                 template,
-                                 ariaLabels,
-                                 initialValues,
-                                 localAnswers,
                                  autoCheck,
+                                 initialValues,
                                  axiosInstance,
+                                 buildMetaUrl = (s) => `/api/exercises/${s}`,
                                  buildCheckUrl = (s) => `/api/exercises/${s}/check`,
                                  onChecked,
                              }: ClozeArticleProps) {
-    const tokens = React.useMemo(() => parseTemplate(template), [template])
-    const fieldIds = React.useMemo(() => tokens.filter(t => t.kind === 'field').map(t => (t as FieldToken).id), [tokens])
-
-    const [values, setValues] = React.useState<Record<string, string>>(() => {
-        const v: Record<string, string> = {}
-        for (const id of fieldIds) v[id] = initialValues?.[id] ?? ''
-        return v
-    })
-    const [lastResult, setLastResult] = React.useState<CheckResult | null>(null)
-
     const http = axiosInstance ?? axios.create()
 
-    // --- Проверка ответов (локально или через бек) ---
-    async function check(valuesToCheck: Record<string, string>): Promise<CheckResult> {
-        if (localAnswers) {
-            let okCount = 0
-            const fieldResults: Record<string, FieldResult> = {}
-            for (const id of fieldIds) {
-                const accepted = (localAnswers[id] ?? []).map(norm)
-                const isOk = accepted.includes(norm(valuesToCheck[id] ?? ''))
-                fieldResults[id] = isOk ? { status: 'ok' } : { status: 'wrong', message: (localAnswers[id] ?? []).join(' / ') || '—' }
-                if (isOk) okCount++
-            }
-            const overall: CheckResult['overall'] =
-                okCount === fieldIds.length ? 'correct' : okCount > 0 ? 'partial' : 'wrong'
-            return { overall, fieldResults }
-        }
-        // Через бек
-        const url = buildCheckUrl(slug)
-        const { data } = await http.post<CheckResult>(url, { fields: valuesToCheck })
-        return data
-    }
+    // (1) Всегда вызываем хук загрузки
+    const metaQuery = useExerciseMeta(slug, { axiosInstance: http, buildMetaUrl })
 
-    const mutation: UseMutationResult<CheckResult, unknown, Record<string, string>> = useMutation({
-        mutationFn: check,
+    // Подготовим безопасные данные, даже если еще грузится
+    const template = metaQuery.data?.template ?? ''
+    const ariaLabels = metaQuery.data?.aria ?? {}
+
+    // (2) Всегда вызываем мемо/стейт/эффекты
+    const tokens = React.useMemo(() => (template ? parseTemplate(template) : []), [template])
+    const fieldIds = React.useMemo(
+        () => tokens.filter((t) => t.kind === 'field').map((t) => (t as FieldToken).id),
+        [tokens],
+    )
+
+    const [values, setValues] = React.useState<Record<string, string>>({})
+    // Инициализируем значения, когда список полей готов (или изменился)
+    React.useEffect(() => {
+        if (!fieldIds.length) return
+        const v: Record<string, string> = {}
+        for (const id of fieldIds) v[id] = initialValues?.[id] ?? ''
+        setValues(v)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fieldIds.join('|')])
+
+    const [lastResult, setLastResult] = React.useState<CheckResult | null>(null)
+
+    const mutation = useMutation({
+        mutationFn: async (fields: Record<string, string>): Promise<CheckResult> => {
+            const { data } = await http.post<CheckResult>(buildCheckUrl(slug), { fields })
+            return data
+        },
         onSuccess: (res) => {
             setLastResult(res)
             onChecked?.(res)
         },
     })
 
-    // --- RxJS автопроверка (debounce 400мс) ---
+    // RxJS автопроверка — создаем стрим один раз
     const values$ = React.useMemo(() => new Subject<Record<string, string>>(), [])
     React.useEffect(() => {
         if (!autoCheck) return
         const sub = values$
-            .pipe(
-                debounceTime(400),
-                distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-            )
+            .pipe(debounceTime(400), distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)))
             .subscribe((v) => mutation.mutate(v))
         return () => sub.unsubscribe()
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,6 +92,9 @@ export function ClozeArticle({
 
     const fieldStatus = (id: string) => lastResult?.fieldResults?.[id]?.status
 
+    // (3) Теперь можно условно рендерить — порядок хуков уже фиксирован
+    if (metaQuery.isLoading) return <div>Loading…</div>
+    if (metaQuery.isError || !template) return <div>Exercise not found.</div>
 
     return (
         <form onSubmit={submit} style={{ maxWidth: 880, margin: '0 auto', padding: 16 }}>
@@ -95,8 +102,7 @@ export function ClozeArticle({
                 {tokens.map((t, i) => {
                     if (t.kind === 'text') return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{t.text}</span>
                     const f = t as FieldToken
-                    const status = fieldStatus(f.id)
-                    const aria = ariaLabels?.[f.id] ?? `Field: ${f.id}`
+                    const aria = ariaLabels[f.id] ?? `Field: ${f.id}`
                     return (
                         <AutoInput
                             key={i}
@@ -105,7 +111,7 @@ export function ClozeArticle({
                             onChange={(v) => setValue(f.id, v)}
                             placeholder={f.placeholder}
                             ariaLabel={aria}
-                            toneClass={tone(status)}
+                            toneClass={tone(fieldStatus(f.id))}
                         />
                     )
                 })}
@@ -116,13 +122,7 @@ export function ClozeArticle({
                     {mutation.isPending ? 'Checking…' : 'Check'}
                 </button>
                 {lastResult && (
-                    <span
-                        style={{
-                            color:
-                                lastResult.overall === 'correct' ? '#16a34a' :
-                                    lastResult.overall === 'partial' ? '#ca8a04' : '#dc2626'
-                        }}
-                    >
+                    <span style={{ color: lastResult.overall === 'correct' ? '#16a34a' : lastResult.overall === 'partial' ? '#ca8a04' : '#dc2626' }}>
             Result: {lastResult.overall}
           </span>
                 )}
@@ -135,12 +135,11 @@ export function ClozeArticle({
                             <li key={id} style={{ color: r.status === 'ok' ? '#16a34a' : r.status === 'wrong' ? '#dc2626' : '#ca8a04' }}>
                                 [{id}] {r.message}
                             </li>
-                        ) : null
+                        ) : null,
                     )}
                 </ul>
             )}
 
-            {/* маленькие утилитарные классы для цветного бордера (если хочешь Tailwind — легко заменить) */}
             <style>{`
         .ok input { border-bottom-color: #16a34a !important; }
         .err input { border-bottom-color: #dc2626 !important; }
