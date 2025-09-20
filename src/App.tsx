@@ -12,8 +12,7 @@ function App() {
             <ServicesProvider>
             <div>
                 <ClozeArticle
-                    slug="0c7af8e9-a543-49b6-a3cb-5c1f872e7bf8"
-                    autoCheck
+                    slug="37455260-afc2-4d0a-a0c7-d83709c7beb5"
                 />
             </div>
                 </ServicesProvider>

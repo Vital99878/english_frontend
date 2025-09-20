@@ -1,21 +1,8 @@
-import {AxiosInstance} from "axios";
 
 export type ClozeArticleProps = {
     slug: string
-    /** Шаблон с пропусками, например: "He is {{a1}} engineer. I go to {{a2|∅}} work." */
-    template: string
     /** Подписи для доступности (опционально) */
     ariaLabels?: Record<string, string>
-    /** Начальные значения полей (опционально) */
-    initialValues?: Record<string, string>
-    /** Включить автопроверку (debounce 400мс через RxJS) */
-    autoCheck?: boolean
-    /** Кастомный axios instance (опционально) */
-    axiosInstance?: AxiosInstance
-    /** Сборка URL для бэка (по умолчанию /api/exercises/:slug/check) */
-    buildCheckUrl?: (slug: string) => string
-    /** Колбэк, если нужно перехватить результат */
-    onChecked?: (result: CheckResult) => void
 }
 
 type TextToken = { kind: 'text'; text: string }
