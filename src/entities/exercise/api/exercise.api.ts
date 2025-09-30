@@ -16,8 +16,8 @@ export class ExerciseApi {
         return await this.http.get<Exercise>(this.buildMetaUrl(slug))
     }
 
-    async check(slug: string, fields: Record<string, string>): Promise<CheckResult> {
-        return await this.http.post<CheckResult>('/api/submissions/cloze', {id: slug, fields})
+    async check(id: string, answers: Record<string, string>): Promise<CheckResult> {
+        return await this.http.post<CheckResult>('/api/submissions/cloze', {id, answers})
     }
 }
 
