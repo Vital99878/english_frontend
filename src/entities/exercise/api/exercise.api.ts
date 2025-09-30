@@ -17,7 +17,7 @@ export class ExerciseApi {
     }
 
     async check(slug: string, fields: Record<string, string>): Promise<CheckResult> {
-        return await this.http.post<CheckResult>(this.buildCheckUrl(slug), {fields})
+        return await this.http.post<CheckResult>('/api/submissions/cloze', {id: slug, fields})
     }
 }
 
