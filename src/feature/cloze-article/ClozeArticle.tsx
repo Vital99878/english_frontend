@@ -8,7 +8,6 @@ import {useCheckExercise} from "feature/cloze-article/model/useCheckExercise";
 export function ClozeArticle({
                                  slug,
                                  ariaLabels,
-                                 initialValues,
                              }: ClozeArticleProps) {
 
     const exerciseMeta = useExerciseMeta(slug)
@@ -25,7 +24,7 @@ export function ClozeArticle({
 
     const [values, setValues] = React.useState<Record<string, string>>(() => {
         const v: Record<string, string> = {}
-        for (const id of fieldIds) v[id] = initialValues?.[id] ?? ''
+        for (const id of fieldIds) v[id] =  ''
         return v
     })
     const [lastResult,] = React.useState<CheckResult | null>(null)
