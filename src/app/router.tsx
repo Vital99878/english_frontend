@@ -7,7 +7,7 @@ import {
     Outlet,
 } from '@tanstack/react-router'
 import IndexPage from '@/pages/IndexPage'
-import ClozeExercisePage, { exerciseRoute } from '@/pages/ClozeExercisePage'
+import ClozeExercisePage from '@/pages/ClozeExercisePage'
 
 // Корневой лейаут
 const Root = () => (
@@ -34,7 +34,7 @@ const exercisesRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([indexRoute, exercisesRoute])
 
-export const router = createRouter({ routeTree })
+const router = createRouter({ routeTree })
 
 // Типизация router для хуков и <Link>
 declare module '@tanstack/react-router' {
