@@ -53,19 +53,6 @@ export function ClozeArticle({
     const lastResult = mutation.data ?? null
     const fieldStatus = (id: string) => lastResult?.fieldResults?.[id]?.status
 
-    const resultTone = lastResult?.overall === 'correct'
-        ? 'text-emerald-600'
-        : lastResult?.overall === 'partial'
-            ? 'text-amber-600'
-            : 'text-rose-600'
-
-    const messageTone = (status: 'ok' | 'wrong' | 'partial') =>
-        status === 'ok'
-            ? 'text-emerald-600'
-            : status === 'partial'
-                ? 'text-amber-600'
-                : 'text-rose-600'
-
     return (
         <form
             onSubmit={submit}
@@ -99,27 +86,7 @@ export function ClozeArticle({
                 >
                     {mutation.isPending ? 'Checking…' : 'Check'}
                 </button>
-                {lastResult && (
-                    <span className={`text-sm font-medium ${resultTone}`}>
-                        Result: <span className="capitalize">{lastResult.overall}</span>
-                    </span>
-                )}
             </div>
-
-            {lastResult && (
-                <ul className="space-y-1 text-sm">
-                    {Object.entries(lastResult.fieldResults).map(([id, r]) =>
-                        r.message ? (
-                            <li
-                                key={id}
-                                className={messageTone(r.status)}
-                            >
-                                <span className="font-medium">[{id}]</span> {r.message}
-                            </li>
-                        ) : null
-                    )}
-                </ul>
-            )}
         </form>
     )
 }
