@@ -60,7 +60,7 @@ export function ClozeArticle({
         >
             <p className="flex flex-wrap items-center gap-x-1 gap-y-2 text-lg leading-8 text-slate-800">
                 {tokens.map((t, i) => {
-                    if (t.kind === 'text') return <span key={i} className="whitespace-pre-wrap">{t.text}</span>
+                    if (t.kind === 'text') return <span key={i} className="whitespace-pre-wrap ">{t.text}</span>
                     const f = t as FieldToken
                     const status = fieldStatus(f.id)
                     const aria = ariaLabels?.[f.id] ?? `Field: ${f.id}`
