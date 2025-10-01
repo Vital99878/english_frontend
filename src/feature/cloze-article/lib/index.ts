@@ -20,9 +20,15 @@ export function parseTemplate(template: string): Token[] {
     return tokens
 }
 
-export const tone = (status?: string) =>
-    status === 'ok'
-        ? 'ok'
-        : status === 'wrong'
-            ? 'err'
-            : ''
+export const tone = (status?: string) => {
+    switch (status) {
+    case 'ok':
+        return 'border-emerald-500 text-emerald-700 focus:border-emerald-600';
+    case 'wrong':
+        return 'border-rose-500 text-rose-600 focus:border-rose-500';
+    case 'partial':
+        return 'border-amber-500 text-amber-600 focus:border-amber-500';
+    default:
+        return ''
+    }
+}
