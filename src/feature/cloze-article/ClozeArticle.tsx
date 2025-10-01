@@ -1,6 +1,6 @@
 import React from 'react'
 import {AutoInput} from "./ui/AutoInput";
-import {ClozeArticleProps, CheckResult, FieldToken} from "src/feature/cloze-article/model/types";
+import {ClozeArticleProps, FieldToken} from "src/feature/cloze-article/model/types";
 import {parseTemplate, tone} from "./lib";
 import {useExerciseMeta} from "feature/cloze-article/model/useExerciseMeta";
 import {useCheckExercise} from "feature/cloze-article/model/useCheckExercise";
@@ -24,10 +24,19 @@ export function ClozeArticle({
 
     const [values, setValues] = React.useState<Record<string, string>>(() => {
         const v: Record<string, string> = {}
-        for (const id of fieldIds) v[id] =  ''
+        for (const id of fieldIds) v[id] = ''
         return v
     })
-    const [lastResult,] = React.useState<CheckResult | null>(null)
+
+    React.useEffect(() => {
+        setValues((prev) => {
+            const next: Record<string, string> = {}
+            for (const id of fieldIds) {
+                next[id] = prev[id] ?? ''
+            }
+            return next
+        })
+    }, [fieldIds])
 
 
     function setValue(id: string, next: string) {
@@ -41,20 +50,30 @@ export function ClozeArticle({
         mutation.mutate(values)
     }
 
+    const lastResult = mutation.data ?? null
     const fieldStatus = (id: string) => lastResult?.fieldResults?.[id]?.status
 
+    const resultTone = lastResult?.overall === 'correct'
+        ? 'text-emerald-600'
+        : lastResult?.overall === 'partial'
+            ? 'text-amber-600'
+            : 'text-rose-600'
+
+    const messageTone = (status: 'ok' | 'wrong' | 'partial') =>
+        status === 'ok'
+            ? 'text-emerald-600'
+            : status === 'partial'
+                ? 'text-amber-600'
+                : 'text-rose-600'
+
     return (
-        <form onSubmit={submit} style={{maxWidth: 880, margin: '0 auto', padding: 16}}>
-            <p style={{
-                lineHeight: 2,
-                fontSize: 18,
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '6px 0'
-            }}>
+        <form
+            onSubmit={submit}
+            className="mx-auto mt-8 max-w-3xl space-y-5 rounded-3xl border border-slate-200 bg-white/80 p-8 shadow-sm backdrop-blur"
+        >
+            <p className="flex flex-wrap items-center gap-x-1 gap-y-2 text-lg leading-8 text-slate-800">
                 {tokens.map((t, i) => {
-                    if (t.kind === 'text') return <span key={i} style={{whiteSpace: 'pre-wrap'}}>{t.text}</span>
+                    if (t.kind === 'text') return <span key={i} className="whitespace-pre-wrap">{t.text}</span>
                     const f = t as FieldToken
                     const status = fieldStatus(f.id)
                     const aria = ariaLabels?.[f.id] ?? `Field: ${f.id}`
@@ -72,42 +91,35 @@ export function ClozeArticle({
                 })}
             </p>
 
-            <div style={{marginTop: 12, display: 'flex', alignItems: 'center', gap: 12}}>
-                <button type="submit" disabled={mutation.isPending}
-                        style={{padding: '8px 14px', borderRadius: 12, border: '1px solid #ddd', background: '#fff'}}>
+            <div className="flex items-center gap-4">
+                <button
+                    type="submit"
+                    disabled={mutation.isPending}
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
                     {mutation.isPending ? 'Checking…' : 'Check'}
                 </button>
                 {lastResult && (
-                    <span
-                        style={{
-                            color:
-                                lastResult.overall === 'correct' ? '#16a34a' :
-                                    lastResult.overall === 'partial' ? '#ca8a04' : '#dc2626'
-                        }}
-                    >
-            Result: {lastResult.overall}
-          </span>
+                    <span className={`text-sm font-medium ${resultTone}`}>
+                        Result: <span className="capitalize">{lastResult.overall}</span>
+                    </span>
                 )}
             </div>
 
             {lastResult && (
-                <ul style={{marginTop: 8, fontSize: 14}}>
+                <ul className="space-y-1 text-sm">
                     {Object.entries(lastResult.fieldResults).map(([id, r]) =>
                         r.message ? (
-                            <li key={id}
-                                style={{color: r.status === 'ok' ? '#16a34a' : r.status === 'wrong' ? '#dc2626' : '#ca8a04'}}>
-                                [{id}] {r.message}
+                            <li
+                                key={id}
+                                className={messageTone(r.status)}
+                            >
+                                <span className="font-medium">[{id}]</span> {r.message}
                             </li>
                         ) : null
                     )}
                 </ul>
             )}
-
-            {/* маленькие утилитарные классы для цветного бордера (если хочешь Tailwind — легко заменить) */}
-            <style>{`
-        .ok input { border-bottom-color: #16a34a !important; }
-        .err input { border-bottom-color: #dc2626 !important; }
-      `}</style>
         </form>
     )
 }
